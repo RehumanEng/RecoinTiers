@@ -1,6 +1,6 @@
 # Rehuman Recoin and Tier Service
 
-This service is responsible for qerying whether a user has hit the limits for being awarded Recoins.
+This service is responsible for querying whether a user has hit the limits for being awarded Recoins.
 
 ## Dependencies
 - Ruby 3.3.6
