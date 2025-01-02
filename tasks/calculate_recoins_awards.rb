@@ -17,12 +17,16 @@ module RecoinAwards
     RecoinAward.new(amount: 3, type: "MonthlySevenThousand", comment: "You hit 7000 steps this month!")
   end
 
-  def twelve_thousand_twice
+  def monthly_twelve_thousand_twice
     RecoinAward.new(amount: 16, type: "MonthlyTwelveThousandTwice", comment: "You hit 12,500 steps twice this month!")
   end
 
-  def twelve_thousand_five
+  def monthly_twelve_thousand_five
     RecoinAward.new(amount: 40, type: "MonthlyTwelveThousandFive", comment: "You hit 12,500 steps five times this month!")
+  end
+
+  def streak_fourteen_thousand
+    RecoinAward.new(amount: 24, type: "StreakFourteenThousand", comment: "You hit a streak of over 14,000 steps for 14 days!")
   end
 end
 
@@ -44,7 +48,13 @@ class CalulateRecoinsAwards
     log(e.backtrace.join("\n"), :error)
   end
 
-  private
+  def fourteen_days_ago
+    @fourteen_days_ago ||= begin
+      fourteen = DateTime.now - 14
+      
+      Time.new(fourteen.year, fourteen.month, fourteen.day, 0,0)
+    end
+  end
 
   def process_users
     users = fetch_users
@@ -56,7 +66,6 @@ class CalulateRecoinsAwards
       rescue => e
         log("Error processing user #{user_object.document_path}: #{e.message}", :error)
         log(e.backtrace.join("\n"), :error)
-        # Continue to the next user
       end
     end
   end
@@ -70,7 +79,7 @@ class CalulateRecoinsAwards
     update_user_balance(user_object, user, recoins_to_add)
     record_transactions(user_object, recoins_to_add)
   rescue => e
-    raise e # Optional: re-raise the error if you want it to propagate to process_users
+    raise e
   end
 
   def fetch_users
@@ -116,11 +125,30 @@ class CalulateRecoinsAwards
     end
 
     if limits[12_500] >= 2
-      if limits[12_500] >= 5 && transactions.none? { |t| t[:parent_id] == RecoinAwards.twelve_thousand_five.type }
-        recoins_to_add << RecoinAwards.twelve_thousand_five.to_h
-      elsif transactions.none? { |t| t[:parent_id] == RecoinAwards.twelve_thousand_twice.type }
-        recoins_to_add << RecoinAwards.twelve_thousand_twice.to_h
+      if limits[12_500] >= 5 && transactions.none? { |t| t[:parent_id] == RecoinAwards.monthly_twelve_thousand_five.type }
+        recoins_to_add << RecoinAwards.monthly_twelve_thousand_five.to_h
+      elsif transactions.none? { |t| t[:parent_id] == RecoinAwards.monthly_twelve_thousand_twice.type }
+        recoins_to_add << RecoinAwards.monthly_twelve_thousand_twice.to_h
       end
+    end
+
+    transactions_for_fourteen_day_streak = transactions.filter { |t| 
+    (t[:created_at] > fourteen_days_ago || t[:created_at] == fourteen_days_ago) && t[:parent_id] == RecoinAwards.streak_fourteen_thousand.type 
+  }
+
+    streak_start = 
+      if transactions_for_fourteen_day_streak.any?
+        last_award_date = transactions_for_fourteen_day_streak.sort_by { |i| i[:created_at] }.last[:created_at]
+
+        Time.new(last_award_date.year, last_award_date.month, last_award_date.day + 1, 0,0)
+      else
+        fourteen_days_ago
+      end
+    
+    steps_for_past_fortnight = steps.filter { |s| s[:date] >= streak_start }
+    
+    if steps_for_past_fortnight.length >= 14 && steps_for_past_fortnight.all? { |s| s[:step_count] >= 14_000 }
+      recoins_to_add << RecoinAwards.streak_fourteen_thousand.to_h
     end
 
     recoins_to_add

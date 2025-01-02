@@ -5,7 +5,9 @@ GEM
       public_suffix (>= 2.0.2, < 7.0)
     base64 (0.2.0)
     bigdecimal (3.1.8)
+    coderay (1.1.3)
     concurrent-ruby (1.3.4)
+    csv (3.3.2)
     faraday (2.12.2)
       faraday-net_http (>= 2.0, < 3.5)
       json
@@ -70,17 +72,28 @@ GEM
     grpc (1.68.1-x86_64-linux)
       google-protobuf (>= 3.25, < 5.0)
       googleapis-common-protos-types (~> 1.0)
+    httparty (0.22.0)
+      csv
+      mini_mime (>= 1.0.0)
+      multi_xml (>= 0.5.2)
     json (2.9.0)
     jwt (2.9.3)
       base64
     logger (1.6.2)
+    method_source (1.1.0)
+    mini_mime (1.1.5)
     multi_json (1.15.0)
+    multi_xml (0.7.1)
+      bigdecimal (~> 3.1)
     mustermann (3.0.3)
       ruby2_keywords (~> 0.0.1)
     net-http (0.6.0)
       uri
     nio4r (2.7.4)
     os (1.1.4)
+    pry (0.15.2)
+      coderay (~> 1.1)
+      method_source (~> 1.0)
     public_suffix (6.0.1)
     puma (6.5.0)
       nio4r (~> 2.0)
@@ -117,6 +130,8 @@ PLATFORMS
 
 DEPENDENCIES
   google-cloud-firestore
+  httparty
+  pry
   puma
   rackup
   sinatra

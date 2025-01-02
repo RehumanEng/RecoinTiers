@@ -22,13 +22,19 @@ class UpdateUserTiersService
 
   private
 
+  def first_of_last_month
+    @first_of_last_month ||= begin
+                               today = Date.today
+
+                               first_of_last_month = Date.new(today.year, today.month, 1) << 1
+                             end
+  end
+
   def process_users
     users = fetch_users
-    beginning_of_month = Date.new(Date.today.year, Date.today.month, 1)
-
     users.each do |user_object|
       begin
-        update_user_tier(user_object, beginning_of_month)
+        update_user_tier(user_object)
       rescue => e
         log("Error processing user #{user_object.document_path}: #{e.message}", :error)
         log(e.backtrace.join("\n"), :error)
@@ -40,10 +46,10 @@ class UpdateUserTiersService
     @firestore.col("users").run
   end
 
-  def fetch_user_transactions(user_object, beginning_of_month)
+  def fetch_user_transactions(user_object)
     @firestore.col("transaction_history")
              .where(:user_id, "=", user_object.ref)
-             .where(:created_at, :">=", beginning_of_month)
+             .where(:created_at, :">=", first_of_last_month)
              .run
              .map(&:fields)
   end
@@ -59,9 +65,8 @@ class UpdateUserTiersService
     end
   end
 
-  def update_user_tier(user_object, beginning_of_month)
-    user = user_object.fields
-    transactions = fetch_user_transactions(user_object, beginning_of_month)
+  def update_user_tier(user_object)
+    transactions = fetch_user_transactions(user_object)
     total_recoins = transactions.sum { |t| t[:amount] || 0 }
 
     new_tier = calculate_tier(total_recoins)
