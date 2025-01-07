@@ -9,8 +9,12 @@ RecoinAward = Struct.new(:amount, :type, :comment, keyword_init: true)
 module RecoinAwards
   module_function
 
+  def daily_five_thousand
+    RecoinAward.new(amount: 1, type: "DailyFiveThousand", comment: "You hit 5,000 steps today!")
+  end
+
   def daily_ten_thousand
-    RecoinAward.new(amount: 2, type: "DailyTenThousand", comment: "You hit 10,000 steps today!")
+    RecoinAward.new(amount: 1, type: "DailyTenThousand", comment: "You hit 10,000 steps today!")
   end
 
   def monthly_seven_thousand
@@ -107,6 +111,11 @@ class CalulateRecoinsAwards
     limits = { 7000 => 0, 12_500 => 0 }
 
     # Daily bonus
+    if steps.any? { |step| step[:step_count] >= 5_000 && step[:date].to_date == Date.today } &&
+       transactions.none? { |t| t[:parent_id] == RecoinAwards.daily_five_thousand.type && t[:created_at].to_date == Date.today }
+      recoins_to_add << RecoinAwards.daily_five_thousand.to_h
+    end
+
     if steps.any? { |step| step[:step_count] >= 10_000 && step[:date].to_date == Date.today } &&
        transactions.none? { |t| t[:parent_id] == RecoinAwards.daily_ten_thousand.type && t[:created_at].to_date == Date.today }
       recoins_to_add << RecoinAwards.daily_ten_thousand.to_h
