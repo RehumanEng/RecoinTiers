@@ -56,9 +56,9 @@ class UpdateUserTiersService
 
   def calculate_tier(total_recoins)
     case total_recoins
-    when 0...50
+    when 0...250
       "Bronze"
-    when 50...100
+    when 251...750
       "Silver"
     else
       "Gold"
@@ -70,6 +70,8 @@ class UpdateUserTiersService
     total_recoins = transactions.sum { |t| t[:amount] || 0 }
 
     new_tier = calculate_tier(total_recoins)
+    # IMPORTANT: The merge option is critical here. Without it, you will wipe the whole document 
+    # except for the values specified here
     @firestore.doc(user_object.document_path).set({ tier: new_tier }, merge: true)
     log("Updated tier for user #{user_object.document_path} to #{new_tier} (total recoins: #{total_recoins}).")
   end
