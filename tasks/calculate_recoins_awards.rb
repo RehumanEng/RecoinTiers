@@ -38,7 +38,7 @@ module RecoinAwards
   end
 end
 
-class CalulateRecoinsAwards
+class CalculateRecoinsAwards
   def initialize
     @firestore = Google::Cloud::Firestore.new(
       project_id: ENV.fetch("FIRESTORE_PROJECT_ID", "rehuman-marketplace"),
@@ -114,6 +114,11 @@ class CalulateRecoinsAwards
              .map(&:fields)
   end
 
+  def max_at(hash, key, default: nil)
+    max = hash.max_by { _1[key] }
+    max&.fetch(key, default)
+  end
+
   def calculate_recoins(steps, transactions)
     recoins_to_add = []
     limits = { 7000 => 0, 12_500 => 0 }
@@ -131,9 +136,9 @@ class CalulateRecoinsAwards
 
     daily_transactions_given_today = transactions.count { |t| t[:parent_id] == RecoinAwards.daily_two_thousand.type && t[:created_at].to_date == Date.today }
     todays_steps = steps.filter { |step| step[:date].to_date == Date.today }
-    amount_of_two_thousand_steps = (todays_steps.sum { |s| s[:step_count] } / 2000).floor
+    amount_of_two_thousand_steps = (max_at(todays_steps, :step_count, default: 0) / 2000).floor
     amount_of_two_thousand_steps = 20 if amount_of_two_thousand_steps > 20
-    daily_amount_to_reward = amount_of_two_thousand_steps - daily_transactions_given_today
+    daily_amount_to_reward = (amount_of_two_thousand_steps - daily_transactions_given_today)
     daily_amount_to_reward.times { recoins_to_add << RecoinAwards.daily_two_thousand.to_h }
 
     # Step count limits
@@ -205,4 +210,4 @@ class CalulateRecoinsAwards
 end
 
 # To execute the job
-CalulateRecoinsAwards.new.run
+CalculateRecoinsAwards.new.run unless ENV['ENV'] = 'test'
